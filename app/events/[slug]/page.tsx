@@ -5,7 +5,7 @@ import { getSimilarEventsBySlug } from "@/lib/actions/event.action";
 import { IEvent } from "@/database/event.model";
 import EventCard from "@/components/EventCard";
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
+const ORIGIN = process.env.NEXT_PUBLIC_BASE_URL ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
 
 const EventDetailItem = ({ icon, alt, label }: { icon: string; alt: string; label: string; }) => (
     <div className="flex-row-gap-2 items-center">
@@ -35,7 +35,7 @@ const EventTags = ({ tags } : { tags : string[] }) => (
 
 const EventDetailsPage = async ({ params } : { params : Promise<{ slug : string }>}) => {
     const { slug } = await params;
-    const request = await fetch(`${BASE_URL}/api/events/${slug}`);
+    const request = await fetch(`${ORIGIN}/api/events/${slug}`);
     
     if (!request.ok) {
         return notFound();

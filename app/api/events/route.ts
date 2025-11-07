@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
             tags: tags,
             agenda: agenda
         });
-        return NextResponse.json({ message: 'Event created successfuly', event: createdEvent}, { status: 201 });
+        return NextResponse.json({ message: 'Event created successfully', event: createdEvent}, { status: 201 });
     } catch (e) {
         return NextResponse.json({ message: 'Event Creation Failed', error: e instanceof Error ? e.message : 'Unknown'}, { status : 500 });
     }
