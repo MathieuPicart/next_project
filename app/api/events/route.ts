@@ -6,19 +6,27 @@ export async function POST(req: NextRequest) {
     try {
         await connectDB();
 
-
         const formData = await req.formData();
-
         let event;
 
         try {
             event = Object.fromEntries(formData.entries());
-        } catch (e) {
-            return NextResponse.json({ message: 'Invalide JSON data format'}, { status : 400 });
+        } catch {
+            return NextResponse.json({ message: 'Invalid form-data entries' }, { status: 400 });
         }
 
-        let tags = JSON.parse(formData.get('tags') as string);
-        let agenda = JSON.parse(formData.get('agenda') as string);
+        const rawTags = formData.get('tags');
+        const rawAgenda = formData.get('agenda');
+
+        let tags: string[] = [];
+        let agenda: string[] = [];
+
+        try {
+            tags = rawTags ? JSON.parse(String(rawTags)) : [];
+            agenda = rawAgenda ? JSON.parse(String(rawAgenda)) : [];
+        } catch {
+            return NextResponse.json({ message: 'Invalid JSON data format' }, { status: 400 });
+        }
 
         // const file = formData.get('image') as File;
 
@@ -44,8 +52,6 @@ export async function POST(req: NextRequest) {
         });
         return NextResponse.json({ message: 'Event created successfuly', event: createdEvent}, { status: 201 });
     } catch (e) {
-
-        console.error(e);
         return NextResponse.json({ message: 'Event Creation Failed', error: e instanceof Error ? e.message : 'Unknown'}, { status : 500 });
     }
 }
