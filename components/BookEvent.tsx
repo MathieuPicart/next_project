@@ -6,7 +6,7 @@ const BookEvent = () => {
     const [email, setEmail] = useState('');
     const [submitted, setSubmitted] = useState(false);
   
-    const handleSumbit = (e: React.FormEvent) => {
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
         setTimeout(() => {
@@ -19,10 +19,16 @@ const BookEvent = () => {
         { submitted ? (
             <p className="text-sm">Thank you for signing up!</p>
         ) : (
-            <form onSubmit={handleSumbit}>
+            <form onSubmit={handleSubmit}>
                 <div>
-                    <label htmlFor="email">Email Adress</label>
-                    <input type="email" name="" id="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Enter your email adress"/>
+                    <label htmlFor="email">Email Address</label>
+                    <input
+                        type="email"
+                        id="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="Enter your email address"
+                    />
                 </div>
 
                 <button type="submit" className="button-submit">Submit</button>
