@@ -45,6 +45,37 @@ export async function POST(req: NextRequest) {
 
         // event.image = (uploadResult as { secure_url: string}).secure_url;
 
+        const fields = ['title', 'slug', 'description', 'overview', 'image', 'venue', 'location', 'date', 'time', 'mode', 'audience', 'organizer'];
+
+        // Validate required fields
+         const missingFields = fields.filter(field => !formData.has(field) || !formData.get(field));
+         if (missingFields.length > 0) {
+             return NextResponse.json(
+                 { message: `Missing required fields: ${missingFields.join(', ')}` },
+                 { status: 400 }
+             );
+         }
+ 
+         // Whitelist and extract allowed fields
+         const eventData: Record<string, unknown> = {};
+         fields.forEach(field => {
+             const value = formData.get(field);
+             if (value !== null) {
+                 eventData[field] = value;
+             }
+         });
+ 
+         // Validate slug format (reuse SLUG_REGEX from [slug] route if available)
+         const slug = String(eventData.slug).trim().toLowerCase();
+         const SLUG_REGEX = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+         if (!SLUG_REGEX.test(slug)) {
+             return NextResponse.json(
+                 { message: 'Invalid slug format. Use lowercase letters, numbers, and hyphens only.' },
+                 { status: 400 }
+             );
+         }
+         eventData.slug = slug;
+
         const createdEvent = await Event.create({
             ...event,
             tags: tags,
