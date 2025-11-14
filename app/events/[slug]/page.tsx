@@ -4,6 +4,7 @@ import BookEvent from "@/components/BookEvent";
 import { getSimilarEventsBySlug } from "@/lib/actions/event.action";
 import { IEvent } from "@/database/event.model";
 import EventCard from "@/components/EventCard";
+import { cacheLife } from "next/cache";
 
 const ORIGIN = process.env.NEXT_PUBLIC_BASE_URL ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
 
@@ -34,21 +35,25 @@ const EventTags = ({ tags } : { tags : string[] }) => (
 );
 
 const EventDetailsPage = async ({ params } : { params : Promise<{ slug : string }>}) => {
+    "use cache";
+    cacheLife('hours');
     const { slug } = await params;
-    const request = await fetch(`${ORIGIN}/api/events/${slug}`);
+
+    const request = await fetch(`${ORIGIN}/api/events/${slug}`, {
+        next: { revalidate: 60 }
+    });
     
     if (!request.ok) {
         return notFound();
     }
     
     const data = await request.json();
-    
-    if (!data?.event) {
+    const event = data.event;
+    if (!event) {
         return notFound();
     }
 
-    
-    const { event: { description, image, overview, date, time, location, mode, agenda, audience, tags, organizer } } = data;
+    const { description, image, overview, date, time, location, mode, agenda, audience, tags, organizer } = event;
     if(!description) return notFound();
     
     const bookings = 10;
@@ -101,7 +106,7 @@ const EventDetailsPage = async ({ params } : { params : Promise<{ slug : string 
                             <p className="text-sm">Be the first to book your spot</p>
                         )}
 
-                        <BookEvent />
+                        <BookEvent eventId={event.id} slug={event.slug} />
                     </div>
                 </aside>
             </div>
