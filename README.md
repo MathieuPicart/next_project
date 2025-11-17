@@ -78,8 +78,8 @@ Make sure you have the following installed on your machine:
 **Cloning the Repository**
 
 ```bash
-git clone https://github.com/adrianhajdin/dev-events-nextjs16-crash-course.git
-cd dev-events-nextjs16-crash-course
+git clone https://github.com/MathieuPicart/next_project.git
+cd next_project
 ```
 
 **Installation**
