@@ -1,81 +1,240 @@
-import { auth } from "@/auth";
-import { redirect } from "next/navigation";
+import connectDB from "@/lib/mongodb";
 import Link from "next/link";
 import StatCard from "@/components/StatCard";
-import connectDB from "@/lib/mongodb";
-import Event from "@/database/event.model";
-import Booking from "@/database/booking.model";
-import User from "@/database/user.model";
+import {
+    getOverviewStats,
+    getPopularEvents,
+    getUpcomingEvents,
+    getRecentBookings,
+    getGrowthStats,
+    getEventStats,
+} from "@/lib/actions/stats.actions";
 
 export const dynamic = 'force-dynamic';
 
-async function getAdminStats() {
+export default async function AdminDashboard() {
     await connectDB();
 
-    const [totalEvents, totalBookings, totalUsers, recentBookings] = await Promise.all([
-        Event.countDocuments(),
-        Booking.countDocuments(),
-        User.countDocuments(),
-        Booking.find()
-            .populate('eventId', 'title slug')
-            .populate('userId', 'name email')
-            .sort({ createdAt: -1 })
-            .limit(5)
-            .lean(),
+    // Fetch all stats
+    const [overview, popular, upcoming, recent, growth, eventStats] = await Promise.all([
+        getOverviewStats(),
+        getPopularEvents(5),
+        getUpcomingEvents(5),
+        getRecentBookings(10),
+        getGrowthStats(),
+        getEventStats(),
     ]);
-
-    return {
-        totalEvents,
-        totalBookings,
-        totalUsers,
-        recentBookings,
-    };
-}
-
-export default async function AdminDashboard() {
-    const session = await auth();
-
-    if (!session || session.user.role !== 'admin') {
-        redirect('/');
-    }
-
-    const stats = await getAdminStats();
 
     return (
         <div className="space-y-8">
+            {/* Header */}
             <div>
-                <h1 className="text-4xl font-bold">Admin Dashboard</h1>
-                <p className="text-light-200 mt-2">Welcome back, {session.user.name}!</p>
+                <h1 className="text-3xl font-bold">Dashboard Overview</h1>
+                <p className="text-light-200 mt-1">Welcome back! Here's what's happening with your platform.</p>
             </div>
 
-            {/* Statistics Cards */}
+            {/* Overview Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <StatCard
                     title="Total Events"
-                    value={stats.totalEvents}
-                    icon="🎫"
+                    value={overview.totalEvents}
+                    icon="📅"
+                    trend={eventStats.upcoming > 0 ? `${eventStats.upcoming} upcoming` : undefined}
                 />
                 <StatCard
                     title="Total Bookings"
-                    value={stats.totalBookings}
-                    icon="📅"
+                    value={overview.totalBookings}
+                    icon="🎟️"
+                    trend={growth.bookings.weekly > 0 ? `+${growth.bookings.weekly} this week` : undefined}
                 />
                 <StatCard
                     title="Total Users"
-                    value={stats.totalUsers}
+                    value={overview.totalUsers}
                     icon="👥"
+                    trend={growth.users.weekly > 0 ? `+${growth.users.weekly} this week` : undefined}
                 />
+            </div>
+
+            {/* Growth Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-dark-100 border border-dark-200 rounded-lg p-6">
+                    <h2 className="text-xl font-bold mb-4">📈 Growth Metrics</h2>
+                    <div className="space-y-4">
+                        <div>
+                            <p className="text-sm text-light-200">Bookings (Last 7 days)</p>
+                            <p className="text-2xl font-bold text-primary">{growth.bookings.weekly}</p>
+                        </div>
+                        <div>
+                            <p className="text-sm text-light-200">Bookings (Last 30 days)</p>
+                            <p className="text-2xl font-bold">{growth.bookings.monthly}</p>
+                        </div>
+                        <div className="pt-2 border-t border-dark-200">
+                            <p className="text-sm text-light-200">New Users (Last 7 days)</p>
+                            <p className="text-2xl font-bold text-primary">{growth.users.weekly}</p>
+                        </div>
+                        <div>
+                            <p className="text-sm text-light-200">New Users (Last 30 days)</p>
+                            <p className="text-2xl font-bold">{growth.users.monthly}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-dark-100 border border-dark-200 rounded-lg p-6">
+                    <h2 className="text-xl font-bold mb-4">📊 Event Breakdown</h2>
+                    <div className="space-y-4">
+                        <div>
+                            <p className="text-sm text-light-200">Upcoming Events</p>
+                            <p className="text-2xl font-bold text-green-400">{eventStats.upcoming}</p>
+                        </div>
+                        <div>
+                            <p className="text-sm text-light-200">Past Events</p>
+                            <p className="text-2xl font-bold">{eventStats.past}</p>
+                        </div>
+                        <div className="pt-2 border-t border-dark-200">
+                            <p className="text-sm text-light-200 mb-2">By Mode</p>
+                            <div className="flex gap-4">
+                                <div>
+                                    <span className="pill">online</span>
+                                    <p className="text-sm font-semibold mt-1">{eventStats.byMode.online}</p>
+                                </div>
+                                <div>
+                                    <span className="pill">offline</span>
+                                    <p className="text-sm font-semibold mt-1">{eventStats.byMode.offline}</p>
+                                </div>
+                                <div>
+                                    <span className="pill">hybrid</span>
+                                    <p className="text-sm font-semibold mt-1">{eventStats.byMode.hybrid}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Popular Events & Upcoming */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-dark-100 border border-dark-200 rounded-lg p-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-xl font-bold">🔥 Popular Events</h2>
+                        <Link href="/admin/events" className="text-sm text-primary hover:underline">
+                            View All
+                        </Link>
+                    </div>
+                    {popular.length === 0 ? (
+                        <p className="text-light-200 text-sm">No events yet</p>
+                    ) : (
+                        <div className="space-y-3">
+                            {popular.map((event, index) => (
+                                <div key={event.id} className="flex items-center justify-between p-3 bg-dark-200 rounded-lg">
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-2xl font-bold text-light-200">#{index + 1}</span>
+                                        <div>
+                                            <Link href={`/events/${event.slug}`} className="font-semibold hover:text-primary" target="_blank">
+                                                {event.title}
+                                            </Link>
+                                            <p className="text-xs text-light-200">{event.location}</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-lg font-bold text-primary">{event.bookingCount}</p>
+                                        <p className="text-xs text-light-200">bookings</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                <div className="bg-dark-100 border border-dark-200 rounded-lg p-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-xl font-bold">📅 Upcoming Events</h2>
+                        <Link href="/admin/events" className="text-sm text-primary hover:underline">
+                            View All
+                        </Link>
+                    </div>
+                    {upcoming.length === 0 ? (
+                        <p className="text-light-200 text-sm">No upcoming events</p>
+                    ) : (
+                        <div className="space-y-3">
+                            {upcoming.map((event) => (
+                                <div key={event.id} className="p-3 bg-dark-200 rounded-lg">
+                                    <Link href={`/events/${event.slug}`} className="font-semibold hover:text-primary block" target="_blank">
+                                        {event.title}
+                                    </Link>
+                                    <div className="flex items-center gap-4 mt-2 text-xs text-light-200">
+                                        <span>📍 {event.location}</span>
+                                        <span>🗓️ {event.date}</span>
+                                        <span>🕐 {event.time}</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Recent Bookings */}
+            <div className="bg-dark-100 border border-dark-200 rounded-lg p-6">
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-bold">🎟️ Recent Bookings</h2>
+                    <Link href="/admin/bookings" className="text-sm text-primary hover:underline">
+                        View All
+                    </Link>
+                </div>
+                {recent.length === 0 ? (
+                    <p className="text-light-200 text-sm">No bookings yet</p>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full">
+                            <thead className="bg-dark-200">
+                                <tr>
+                                    <th className="px-4 py-3 text-left text-sm font-semibold">User</th>
+                                    <th className="px-4 py-3 text-left text-sm font-semibold">Event</th>
+                                    <th className="px-4 py-3 text-left text-sm font-semibold">Booked At</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-dark-200">
+                                {recent.map((booking) => (
+                                    <tr key={booking.id} className="hover:bg-dark-200/50">
+                                        <td className="px-4 py-3 text-sm">
+                                            {booking.user ? booking.user.name : 'Guest User'}
+                                            <p className="text-xs text-light-200">{booking.user?.email || booking.email}</p>
+                                        </td>
+                                        <td className="px-4 py-3 text-sm">
+                                            {booking.event ? (
+                                                <Link href={`/events/${booking.event.slug}`} className="hover:text-primary" target="_blank">
+                                                    {booking.event.title}
+                                                </Link>
+                                            ) : (
+                                                'Event deleted'
+                                            )}
+                                        </td>
+                                        <td className="px-4 py-3 text-sm text-light-200">
+                                            {new Date(booking.createdAt).toLocaleDateString('en-US', {
+                                                month: 'short',
+                                                day: 'numeric',
+                                                year: 'numeric',
+                                                hour: '2-digit',
+                                                minute: '2-digit',
+                                            })}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
             </div>
 
             {/* Quick Actions */}
             <div className="bg-dark-100 border border-dark-200 rounded-lg p-6">
-                <h2 className="text-2xl font-bold mb-4">Quick Actions</h2>
-                <div className="flex flex-wrap gap-4">
+                <h2 className="text-xl font-bold mb-4">⚡ Quick Actions</h2>
+                <div className="flex flex-wrap gap-3">
                     <Link
                         href="/admin/events/create"
                         className="bg-primary hover:bg-primary/90 text-black font-semibold px-6 py-3 rounded-lg transition-colors"
                     >
-                        ➕ Create New Event
+                        ➕ Create Event
                     </Link>
                     <Link
                         href="/admin/events"
@@ -87,41 +246,15 @@ export default async function AdminDashboard() {
                         href="/admin/bookings"
                         className="bg-dark-200 hover:bg-dark-100 px-6 py-3 rounded-lg transition-colors"
                     >
-                        📊 View Bookings
+                        🎟️ View Bookings
+                    </Link>
+                    <Link
+                        href="/admin/users"
+                        className="bg-dark-200 hover:bg-dark-100 px-6 py-3 rounded-lg transition-colors"
+                    >
+                        👥 Manage Users
                     </Link>
                 </div>
-            </div>
-
-            {/* Recent Bookings */}
-            <div className="bg-dark-100 border border-dark-200 rounded-lg p-6">
-                <h2 className="text-2xl font-bold mb-4">Recent Bookings</h2>
-                {stats.recentBookings.length === 0 ? (
-                    <p className="text-light-200">No bookings yet.</p>
-                ) : (
-                    <div className="space-y-3">
-                        {stats.recentBookings.map((booking: any) => (
-                            <div
-                                key={booking._id.toString()}
-                                className="flex items-center justify-between p-4 bg-dark-200 rounded-lg"
-                            >
-                                <div>
-                                    <p className="font-semibold">{booking.eventId?.title || 'Unknown Event'}</p>
-                                    <p className="text-sm text-light-200">
-                                        {booking.userId?.name || booking.email} • {new Date(booking.createdAt).toLocaleDateString()}
-                                    </p>
-                                </div>
-                                {booking.eventId?.slug && (
-                                    <Link
-                                        href={`/events/${booking.eventId.slug}`}
-                                        className="text-primary hover:underline text-sm"
-                                    >
-                                        View Event →
-                                    </Link>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-                )}
             </div>
         </div>
     );

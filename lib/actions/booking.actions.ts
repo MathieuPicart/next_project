@@ -72,3 +72,13 @@ export const cancelUserBooking = async (bookingId: string) => {
         return { success: false };
     }
 }
+
+export const getEventBookingCount = async (eventId: string) => {
+    try {
+        await connectDB();
+        return await Booking.countDocuments({ eventId });
+    } catch (e) {
+        console.error('get booking count failed', e);
+        return 0;
+    }
+}

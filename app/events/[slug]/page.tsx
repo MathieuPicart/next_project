@@ -1,9 +1,10 @@
-import { notFound } from "next/navigation";
 import Image from "next/image";
-import BookEvent from "@/components/BookEvent";
-import { getSimilarEventsBySlug } from "@/lib/actions/event.action";
+import { notFound } from "next/navigation";
 import { IEvent } from "@/database/event.model";
 import EventCard from "@/components/EventCard";
+import BookEvent from "@/components/BookEvent";
+import { getSimilarEventsBySlug } from "@/lib/actions/event.action";
+import { getEventBookingCount } from "@/lib/actions/booking.actions";
 
 const ORIGIN = process.env.NEXT_PUBLIC_BASE_URL ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
 
@@ -53,7 +54,7 @@ const EventDetailsPage = async ({ params }: { params: Promise<{ slug: string }> 
     const { description, image, overview, date, time, location, mode, agenda, audience, tags, organizer } = event;
     if (!description) return notFound();
 
-    const bookings = 10;
+    const bookings = await getEventBookingCount(event._id.toString());
 
     const similarEvents: IEvent[] = await getSimilarEventsBySlug(slug);
 
@@ -97,10 +98,12 @@ const EventDetailsPage = async ({ params }: { params: Promise<{ slug: string }> 
                 <aside className="booking">
                     <div className="signup-card">
                         <h2>Book your spot</h2>
-                        {bookings > 0 ? (
+                        {bookings > 1 ? (
                             <p className="text-sm">Join {bookings} people who have already booked their spot!</p>
+                        ) : bookings === 1 ? (
+                            <p className="text-sm">Be one of the first to book your spot!</p>
                         ) : (
-                            <p className="text-sm">Be the first to book your spot</p>
+                            <p className="text-sm">Be the first to book your spot!</p>
                         )}
 
                         <BookEvent eventId={event._id.toString()} slug={event.slug} />
