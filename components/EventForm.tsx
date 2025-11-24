@@ -22,9 +22,10 @@ interface EventFormData {
 interface EventFormProps {
     initialData?: Partial<EventFormData>;
     isEditing?: boolean;
+    eventSlug?: string;
 }
 
-export default function EventForm({ initialData, isEditing = false }: EventFormProps) {
+export default function EventForm({ initialData, isEditing = false, eventSlug }: EventFormProps) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -106,15 +107,18 @@ export default function EventForm({ initialData, isEditing = false }: EventFormP
                 }
             });
 
-            const response = await fetch('/api/events', {
-                method: 'POST',
+            const url = isEditing ? `/api/events/${eventSlug}` : '/api/events';
+            const method = isEditing ? 'PUT' : 'POST';
+
+            const response = await fetch(url, {
+                method,
                 body: formDataToSend,
             });
 
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.message || 'Failed to create event');
+                throw new Error(data.message || `Failed to ${isEditing ? 'update' : 'create'} event`);
             }
 
             // Redirect to events list
@@ -413,7 +417,7 @@ export default function EventForm({ initialData, isEditing = false }: EventFormP
                     disabled={loading}
                     className="bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed text-black font-semibold px-8 py-3 rounded-lg transition-colors"
                 >
-                    {loading ? 'Creating...' : isEditing ? 'Update Event' : 'Create Event'}
+                    {loading ? (isEditing ? 'Updating...' : 'Creating...') : (isEditing ? 'Update Event' : 'Create Event')}
                 </button>
                 <button
                     type="button"

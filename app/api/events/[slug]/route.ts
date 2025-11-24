@@ -1,146 +1,151 @@
-import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/mongodb';
-import Event from '@/database/event.model';
+import Event from "@/database/event.model";
+import connectDB from "@/lib/mongodb";
+import { NextRequest, NextResponse } from "next/server";
 
-// Types for route params and payload
-type RouteParams = {
-  params: Promise<{
-    slug: string;
-  }>;
-};
-
-
-type DBEvent = {
-  _id: unknown;
-  title: string;
-  slug: string;
-  description: string;
-  overview: string;
-  image: string;
-  venue: string;
-  location: string;
-  date: string;
-  time: string;
-  mode: 'online' | 'offline' | 'hybrid';
-  audience: string;
-  agenda: string[];
-  organizer: string;
-  tags: string[];
-  createdAt: Date;
-  updatedAt: Date;
-};
-
-type EventDTO = {
-  id: string;
-  title: string;
-  slug: string;
-  description: string;
-  overview: string;
-  image: string;
-  venue: string;
-  location: string;
-  date: string;
-  time: string;
-  mode: 'online' | 'offline' | 'hybrid';
-  audience: string;
-  agenda: string[];
-  organizer: string;
-  tags: string[];
-  createdAt: string;
-  updatedAt: string;
-};
-
-// Allow lowercase letters, numbers and single hyphens between segments
-const SLUG_REGEX = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-
-/**
- * GET /api/events/[slug]
- * Returns a single event by slug.
- */
-export async function GET(_req: NextRequest, { params }: RouteParams) {
+// GET - Fetch single event by slug
+export async function GET(
+  _req: NextRequest,
+  { params }: { params: Promise<{ slug: string }> }
+) {
   try {
-    // Ensure DB connection is established (cached across requests)
-    await connectDB();
+    const { slug } = await params;
+    const SLUG_REGEX = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
-     // Await and extract slug from params
-     const { slug } = await params;
-
-    if (typeof slug !== 'string' || slug.trim().length === 0) {
-      return NextResponse.json({ message: 'Slug is required' }, { status: 400 });
-    }
-
-    const sanitizedSlug = slug.trim().toLowerCase();
-    if (!SLUG_REGEX.test(sanitizedSlug)) {
+    if (!slug || typeof slug !== 'string' || !SLUG_REGEX.test(slug.trim())) {
       return NextResponse.json(
-        { message: 'Invalid slug format. Use lowercase letters, numbers, and hyphens only.' },
+        { message: 'Invalid slug format' },
         { status: 400 }
       );
     }
 
-    // Find event by slug; lean() returns a plain object suitable for JSON
-    const event = await Event.findOne({ slug : sanitizedSlug }).lean<DBEvent>();
+    await connectDB();
 
-    // Handle events not found
+    const event = await Event.findOne({ slug: slug.trim() }).lean();
+
     if (!event) {
       return NextResponse.json(
-        { message: `Event with slug '${sanitizedSlug}' not found` },
+        { message: 'Event not found' },
         { status: 404 }
       );
     }
 
-    // Map to a stable, API-safe DTO (avoid exposing _id/ObjectId directly)
-    const payload: EventDTO = {
-      id: String((event as DBEvent)._id),
-      title: event.title,
-      slug: event.slug,
-      description: event.description,
-      overview: event.overview,
-      image: event.image,
-      venue: event.venue,
-      location: event.location,
-      date: event.date,
-      time: event.time,
-      mode: event.mode,
-      audience: event.audience,
-      agenda: event.agenda,
-      organizer: event.organizer,
-      tags: event.tags,
-      createdAt: new Date(event.createdAt).toISOString(),
-      updatedAt: new Date(event.updatedAt).toISOString(),
-    };
-
-    // Return successful response with events data
     return NextResponse.json(
-      { message: 'Event fetched successfully', event: payload }, 
+      { message: 'Event fetched successfully', event },
       { status: 200 }
     );
   } catch (error) {
-    // Log error for debugging (only in development)
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Error fetching events by slug:', error);
-    }
+    return NextResponse.json(
+      { message: 'Error fetching event', error: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    );
+  }
+}
 
-    // Handle specific error types
-    if (error instanceof Error) {
-      // Handle database connection errors
-      if (error.message.includes('MONGODB_URI')) {
-        return NextResponse.json(
-          { message: 'Database configuration error' },
-          { status: 500 }
-        );
-      }
+// PUT - Update event by slug
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: Promise<{ slug: string }> }
+) {
+  try {
+    const { slug } = await params;
+    await connectDB();
 
-      // Return generic error with error message
+    // Check if event exists
+    const existingEvent = await Event.findOne({ slug });
+    if (!existingEvent) {
       return NextResponse.json(
-        { message: 'Failed to fetch events', error: error.message },
-        { status: 500 }
+        { message: 'Event not found' },
+        { status: 404 }
       );
     }
 
-    // Handle unknown errors
-    return NextResponse.json(
-      { message: 'An unexpected error occurred' },
-      { status: 500 }
+    const formData = await req.formData();
+
+    // Define updatable fields (excluding slug as it's auto-generated from title)
+    const fields = ['title', 'description', 'overview', 'image', 'venue', 'location', 'date', 'time', 'mode', 'audience', 'organizer'];
+
+    // Extract and validate fields
+    const updateData: Record<string, unknown> = {};
+    fields.forEach(field => {
+      const value = formData.get(field);
+      if (value !== null) {
+        updateData[field] = value;
+      }
+    });
+
+    // Parse tags and agenda
+    const rawTags = formData.get('tags');
+    const rawAgenda = formData.get('agenda');
+
+    try {
+      if (rawTags) updateData.tags = JSON.parse(String(rawTags));
+      if (rawAgenda) updateData.agenda = JSON.parse(String(rawAgenda));
+    } catch {
+      return NextResponse.json(
+        { message: 'Invalid JSON format for tags or agenda' },
+        { status: 400 }
+      );
+    }
+
+    // Update the event (slug will be regenerated from new title if title changed)
+    const updatedEvent = await Event.findOneAndUpdate(
+      { slug },
+      updateData,
+      { new: true, runValidators: true }
     );
+
+    return NextResponse.json({
+      message: 'Event updated successfully',
+      event: updatedEvent
+    }, { status: 200 });
+  } catch (error) {
+    console.error('Event update error:', error);
+    return NextResponse.json({
+      message: 'Event update failed',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
+  }
+}
+
+// DELETE - Delete event by slug
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ slug: string }> }
+) {
+  try {
+    const { slug } = await params;
+    await connectDB();
+
+    // Check if event exists
+    const event = await Event.findOne({ slug });
+    if (!event) {
+      return NextResponse.json(
+        { message: 'Event not found' },
+        { status: 404 }
+      );
+    }
+
+    // Check if event has bookings
+    const Booking = (await import('@/database/booking.model')).default;
+    const bookingCount = await Booking.countDocuments({ eventId: event._id });
+
+    if (bookingCount > 0) {
+      return NextResponse.json(
+        { message: `Cannot delete event with existing bookings. This event has ${bookingCount} booking${bookingCount > 1 ? 's' : ''}.` },
+        { status: 400 }
+      );
+    }
+
+    await Event.findOneAndDelete({ slug });
+
+    return NextResponse.json({
+      message: 'Event deleted successfully'
+    }, { status: 200 });
+  } catch (error) {
+    console.error('Event deletion error:', error);
+    return NextResponse.json({
+      message: 'Event deletion failed',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }
