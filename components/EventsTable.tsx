@@ -49,7 +49,8 @@ export default function EventsTable({ events }: { events: Event[] }) {
                 return;
             }
 
-            // Success - close modal and refresh
+            // Success - reset loading, close modal and refresh
+            setLoading(false);
             setDeleteModal({ isOpen: false, event: null });
             router.refresh();
         } catch (err: any) {

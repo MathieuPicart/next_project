@@ -96,14 +96,14 @@ const EventDetailsPage = async ({ params }: { params: Promise<{ slug: string }> 
                 {/* Right Side - Booking Form */}
                 <aside className="booking">
                     <div className="signup-card">
-                        <h2>Book your sport</h2>
+                        <h2>Book your spot</h2>
                         {bookings > 0 ? (
                             <p className="text-sm">Join {bookings} people who have already booked their spot!</p>
                         ) : (
                             <p className="text-sm">Be the first to book your spot</p>
                         )}
 
-                        <BookEvent eventId={event.id} slug={event.slug} />
+                        <BookEvent eventId={event._id.toString()} slug={event.slug} />
                     </div>
                 </aside>
             </div>

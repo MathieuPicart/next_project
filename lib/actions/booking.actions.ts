@@ -33,3 +33,42 @@ export const createBooking = async ({
         return { success: false };
     }
 }
+
+export const checkUserBooking = async ({
+    eventId,
+    userId
+}: {
+    eventId: string;
+    userId: string;
+}) => {
+    try {
+        await connectDB();
+
+        const existingBooking = await Booking.findOne({ eventId, userId }).lean();
+
+        if (existingBooking) {
+            return {
+                hasBooked: true,
+                bookingId: existingBooking._id.toString()
+            };
+        }
+
+        return { hasBooked: false };
+    } catch (e) {
+        console.error('check booking failed', e);
+        return { hasBooked: false };
+    }
+}
+
+export const cancelUserBooking = async (bookingId: string) => {
+    try {
+        await connectDB();
+
+        await Booking.findByIdAndDelete(bookingId);
+
+        return { success: true };
+    } catch (e) {
+        console.error('cancel booking failed', e);
+        return { success: false };
+    }
+}
