@@ -4,11 +4,28 @@ import Booking from '@/database/booking.model';
 
 import connectDB from "@/lib/mongodb";
 
-export const createBooking = async ({ eventId, slug, email }: { eventId: string; slug: string; email: string; }) => {
+export const createBooking = async ({
+    eventId,
+    slug,
+    email,
+    userId
+}: {
+    eventId: string;
+    slug: string;
+    email: string;
+    userId?: string;
+}) => {
     try {
         await connectDB();
 
-        await Booking.create({ eventId, slug, email });
+        const bookingData: any = { eventId, slug, email };
+
+        // Add userId if provided (authenticated user)
+        if (userId) {
+            bookingData.userId = userId;
+        }
+
+        await Booking.create(bookingData);
 
         return { success: true };
     } catch (e) {

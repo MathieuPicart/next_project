@@ -1,0 +1,86 @@
+import { auth } from "@/auth";
+import { redirect } from "next/navigation";
+import Image from "next/image";
+import BookingsList from "@/components/BookingsList";
+
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic';
+
+// Server action to get user's bookings
+async function getUserBookings(userId: string) {
+    const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+
+    try {
+        const response = await fetch(`${BASE_URL}/api/bookings/user/${userId}`, {
+            cache: 'no-store',
+        });
+
+        if (!response.ok) {
+            return [];
+        }
+
+        const data = await response.json();
+        return data.bookings || [];
+    } catch (error) {
+        console.error('Error fetching user bookings:', error);
+        return [];
+    }
+}
+
+const DashboardPage = async () => {
+    const session = await auth();
+
+    if (!session) {
+        redirect('/auth/signin');
+    }
+
+    const bookings = await getUserBookings(session.user.id);
+
+    return (
+        <section className="space-y-8">
+            <div>
+                <h1 className="text-4xl font-bold">Dashboard</h1>
+                <p className="text-light-200 mt-2">Welcome back, {session.user.name}!</p>
+            </div>
+
+            {/* User Info Card */}
+            <div className="bg-dark-100 border-dark-200 card-shadow rounded-[10px] border px-6 py-6">
+                <h2 className="text-2xl font-bold mb-4">Account Information</h2>
+                <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                        {session.user.image ? (
+                            <Image
+                                src={session.user.image}
+                                alt={session.user.name || 'User'}
+                                width={48}
+                                height={48}
+                                className="rounded-full"
+                            />
+                        ) : (
+                            <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-black font-bold">
+                                {session.user.name?.charAt(0).toUpperCase()}
+                            </div>
+                        )}
+                        <div>
+                            <p className="font-semibold">{session.user.name}</p>
+                            <p className="text-sm text-light-200">{session.user.email}</p>
+                        </div>
+                    </div>
+                    <div className="pt-2 border-t border-dark-200">
+                        <p className="text-sm text-light-200">
+                            Role: <span className="text-primary font-medium capitalize">{session.user.role}</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Bookings Section */}
+            <div>
+                <h2 className="text-2xl font-bold mb-4">My Bookings ({bookings.length})</h2>
+                <BookingsList bookings={bookings} />
+            </div>
+        </section>
+    );
+}
+
+export default DashboardPage;
