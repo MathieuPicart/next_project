@@ -39,19 +39,19 @@ export default async function AdminDashboard() {
                     title="Total Events"
                     value={overview.totalEvents}
                     icon="📅"
-                    trend={eventStats.upcoming > 0 ? `${eventStats.upcoming} upcoming` : undefined}
+                    trend={eventStats.upcoming > 0 ? { value: `${eventStats.upcoming} upcoming`, isPositive: true } : undefined}
                 />
                 <StatCard
                     title="Total Bookings"
                     value={overview.totalBookings}
                     icon="🎟️"
-                    trend={growth.bookings.weekly > 0 ? `+${growth.bookings.weekly} this week` : undefined}
+                    trend={growth.bookings.weekly > 0 ? { value: `+${growth.bookings.weekly} this week`, isPositive: true } : undefined}
                 />
                 <StatCard
                     title="Total Users"
                     value={overview.totalUsers}
                     icon="👥"
-                    trend={growth.users.weekly > 0 ? `+${growth.users.weekly} this week` : undefined}
+                    trend={growth.users.weekly > 0 ? { value: `+${growth.users.weekly} this week`, isPositive: true } : undefined}
                 />
             </div>
 
