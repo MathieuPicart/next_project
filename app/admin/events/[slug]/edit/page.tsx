@@ -3,7 +3,16 @@ import connectDB from "@/lib/mongodb";
 import Event from "@/database/event.model";
 import { notFound } from "next/navigation";
 
+import { auth } from "@/auth";
+import { redirect } from "next/navigation";
+
 export default async function EditEventPage({ params }: { params: Promise<{ slug: string }> }) {
+    const session = await auth();
+
+    if (!session || session.user.role !== 'admin') {
+        redirect('/');
+    }
+
     const { slug } = await params;
 
     await connectDB();
