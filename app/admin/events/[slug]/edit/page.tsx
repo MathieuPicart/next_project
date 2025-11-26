@@ -9,7 +9,7 @@ import { redirect } from "next/navigation";
 export default async function EditEventPage({ params }: { params: Promise<{ slug: string }> }) {
     const session = await auth();
 
-    if (!session || session.user.role !== 'admin') {
+    if (!session?.user || session.user.role !== 'admin') {
         redirect('/');
     }
 

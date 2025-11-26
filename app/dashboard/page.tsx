@@ -2,30 +2,10 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Image from "next/image";
 import BookingsList from "@/components/BookingsList";
+import { getUserBookingsWithEvents } from "@/lib/actions/booking.actions";
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
-
-// Server action to get user's bookings
-async function getUserBookings(userId: string) {
-    const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-
-    try {
-        const response = await fetch(`${BASE_URL}/api/bookings/user/${userId}`, {
-            cache: 'no-store',
-        });
-
-        if (!response.ok) {
-            return [];
-        }
-
-        const data = await response.json();
-        return data.bookings || [];
-    } catch (error) {
-        console.error('Error fetching user bookings:', error);
-        return [];
-    }
-}
 
 const DashboardPage = async () => {
     const session = await auth();
@@ -34,7 +14,7 @@ const DashboardPage = async () => {
         redirect('/auth/signin');
     }
 
-    const bookings = await getUserBookings(session.user.id);
+    const bookings = await getUserBookingsWithEvents(session.user.id);
 
     return (
         <section className="space-y-8">

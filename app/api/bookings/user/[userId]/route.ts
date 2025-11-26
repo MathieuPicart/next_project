@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import Booking from '@/database/booking.model';
 import Event from '@/database/event.model';
+import { auth } from '@/auth';
 
 type RouteParams = {
     params: Promise<{
@@ -11,9 +12,18 @@ type RouteParams = {
 
 export async function GET(_req: NextRequest, { params }: RouteParams) {
     try {
-        await connectDB();
-
+        const session = await auth();
         const { userId } = await params;
+
+        // Allow access only to own bookings or if admin
+        if (!session?.user || (session.user.id !== userId && session.user.role !== 'admin')) {
+            return NextResponse.json(
+                { message: 'Unauthorized' },
+                { status: 401 }
+            );
+        }
+
+        await connectDB();
 
         if (!userId) {
             return NextResponse.json(

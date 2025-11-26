@@ -3,9 +3,17 @@ import User from "@/database/user.model";
 import Booking from "@/database/booking.model";
 import UsersTable from "@/components/UsersTable";
 
+import { auth } from "@/auth";
+import { redirect } from "next/navigation";
+
 export const dynamic = 'force-dynamic';
 
 export default async function AdminUsersPage() {
+    const session = await auth();
+    if (!session || session.user.role !== 'admin') {
+        redirect('/');
+    }
+
     await connectDB();
 
     // Fetch all users
@@ -49,7 +57,7 @@ export default async function AdminUsersPage() {
                 </div>
             </div>
 
-            <UsersTable users={usersWithBookings} />
+            <UsersTable users={usersWithBookings} currentUserId={session.user.id} />
         </div>
     );
 }

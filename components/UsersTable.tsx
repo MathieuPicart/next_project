@@ -12,7 +12,12 @@ interface User {
     bookingCount: number;
 }
 
-export default function UsersTable({ users }: { users: User[] }) {
+interface UsersTableProps {
+    users: User[];
+    currentUserId: string;
+}
+
+export default function UsersTable({ users, currentUserId }: UsersTableProps) {
     const router = useRouter();
     const [loading, setLoading] = useState<string | null>(null);
     const [error, setError] = useState('');
@@ -110,50 +115,70 @@ export default function UsersTable({ users }: { users: User[] }) {
                                 </td>
                             </tr>
                         ) : (
-                            filteredUsers.map((user) => (
-                                <tr key={user._id} className="hover:bg-dark-200/50 transition-colors">
-                                    <td className="px-6 py-4">
-                                        <div>
-                                            <p className="font-semibold">{user.name}</p>
-                                            <p className="text-sm text-light-200">{user.email}</p>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span className={`pill ${user.role === 'admin' ? 'bg-primary/20 text-primary' : ''}`}>
-                                            {user.role}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 text-sm">{user.bookingCount}</td>
-                                    <td className="px-6 py-4 text-sm">
-                                        {new Date(user.createdAt).toLocaleDateString('en-US', {
-                                            year: 'numeric',
-                                            month: 'short',
-                                            day: 'numeric',
-                                        })}
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center justify-end gap-2">
-                                            {user.role === 'user' ? (
-                                                <button
-                                                    onClick={() => handleRoleChange(user._id, 'admin')}
-                                                    disabled={loading === user._id}
-                                                    className="text-primary hover:underline text-sm disabled:opacity-50"
-                                                >
-                                                    {loading === user._id ? 'Promoting...' : 'Promote to Admin'}
-                                                </button>
-                                            ) : (
-                                                <button
-                                                    onClick={() => handleRoleChange(user._id, 'user')}
-                                                    disabled={loading === user._id}
-                                                    className="text-blue-400 hover:underline text-sm disabled:opacity-50"
-                                                >
-                                                    {loading === user._id ? 'Demoting...' : 'Demote to User'}
-                                                </button>
-                                            )}
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))
+                            filteredUsers.map((user) => {
+                                const isSelf = user._id === currentUserId;
+                                const canDemote = user.role === 'admin' && !isSelf;
+
+                                return (
+                                    <tr key={user._id} className="hover:bg-dark-200/50 transition-colors">
+                                        <td className="px-6 py-4">
+                                            <div>
+                                                <p className="font-semibold">
+                                                    {user.name}
+                                                    {isSelf && (
+                                                        <span className="ml-2 text-xs text-primary">(You)</span>
+                                                    )}
+                                                </p>
+                                                <p className="text-sm text-light-200">{user.email}</p>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className={`pill ${user.role === 'admin' ? 'bg-primary/20 text-primary' : ''}`}>
+                                                {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-sm">{user.bookingCount}</td>
+                                        <td className="px-6 py-4 text-sm">
+                                            {new Date(user.createdAt).toLocaleDateString('en-US', {
+                                                year: 'numeric',
+                                                month: 'short',
+                                                day: 'numeric',
+                                            })}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center justify-end gap-2">
+                                                {user.role === 'user' ? (
+                                                    <button
+                                                        onClick={() => handleRoleChange(user._id, 'admin')}
+                                                        disabled={loading === user._id}
+                                                        className="text-primary hover:underline text-sm disabled:opacity-50"
+                                                    >
+                                                        {loading === user._id ? 'Promoting...' : 'Promote to Admin'}
+                                                    </button>
+                                                ) : user._id === currentUserId ? (
+                                                    <span className="text-light-200 text-sm">Cannot demote yourself</span>
+                                                ) : (
+                                                    <div className="relative group">
+                                                        <button
+                                                            onClick={() => handleRoleChange(user._id, 'user')}
+                                                            disabled={loading === user._id || !canDemote}
+                                                            className="text-blue-400 hover:underline text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                                            title={!canDemote ? 'You cannot demote yourself' : ''}
+                                                        >
+                                                            {loading === user._id ? 'Demoting...' : 'Demote to User'}
+                                                        </button>
+                                                        {!canDemote && (
+                                                            <span className="absolute hidden group-hover:block bottom-full right-0 mb-2 w-64 bg-dark-300 text-light-200 text-xs rounded-lg px-3 py-2 shadow-lg z-10">
+                                                                You cannot demote yourself. Ask another admin to change your role.
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })
                         )}
                     </tbody>
                 </table>
