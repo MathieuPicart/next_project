@@ -62,7 +62,6 @@ export async function PATCH(req: NextRequest) {
         console.error('Profile update error:', error);
         return NextResponse.json({
             message: 'Profile update failed',
-            error: error instanceof Error ? error.message : 'Unknown error'
         }, { status: 500 });
     }
 }
