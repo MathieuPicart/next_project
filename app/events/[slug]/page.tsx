@@ -1,10 +1,10 @@
-import { notFound } from "next/navigation";
 import Image from "next/image";
-import BookEvent from "@/components/BookEvent";
-import { getSimilarEventsBySlug } from "@/lib/actions/event.action";
+import { notFound } from "next/navigation";
 import { IEvent } from "@/database/event.model";
 import EventCard from "@/components/EventCard";
-import { cacheLife } from "next/cache";
+import BookEvent from "@/components/BookEvent";
+import { getSimilarEventsBySlug } from "@/lib/actions/event.action";
+import { getEventBookingCount } from "@/lib/actions/booking.actions";
 
 const ORIGIN = process.env.NEXT_PUBLIC_BASE_URL ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
 
@@ -15,7 +15,7 @@ const EventDetailItem = ({ icon, alt, label }: { icon: string; alt: string; labe
     </div>
 )
 
-const EventAgenda = ({ agendaItems } : { agendaItems : string[] }) => (
+const EventAgenda = ({ agendaItems }: { agendaItems: string[] }) => (
     <div className="agenda">
         <h2>Agenda</h2>
         <ul>
@@ -26,7 +26,7 @@ const EventAgenda = ({ agendaItems } : { agendaItems : string[] }) => (
     </div>
 );
 
-const EventTags = ({ tags } : { tags : string[] }) => (
+const EventTags = ({ tags }: { tags: string[] }) => (
     <div className="flex flex-row gap-1.5 flex-wrap">
         {tags.map((tag) => (
             <div className="pill" key={tag}>{tag}</div>
@@ -34,19 +34,17 @@ const EventTags = ({ tags } : { tags : string[] }) => (
     </div>
 );
 
-const EventDetailsPage = async ({ params } : { params : Promise<{ slug : string }>}) => {
-    "use cache";
-    cacheLife('hours');
+const EventDetailsPage = async ({ params }: { params: Promise<{ slug: string }> }) => {
     const { slug } = await params;
 
     const request = await fetch(`${ORIGIN}/api/events/${slug}`, {
         next: { revalidate: 60 }
     });
-    
+
     if (!request.ok) {
         return notFound();
     }
-    
+
     const data = await request.json();
     const event = data.event;
     if (!event) {
@@ -54,11 +52,11 @@ const EventDetailsPage = async ({ params } : { params : Promise<{ slug : string 
     }
 
     const { description, image, overview, date, time, location, mode, agenda, audience, tags, organizer } = event;
-    if(!description) return notFound();
-    
-    const bookings = 10;
+    if (!description) return notFound();
 
-    const similarEvents : IEvent[] = await getSimilarEventsBySlug(slug);
+    const bookings = await getEventBookingCount(event._id.toString());
+
+    const similarEvents = await getSimilarEventsBySlug(slug);
 
     return (
         <section id="event">
@@ -76,7 +74,7 @@ const EventDetailsPage = async ({ params } : { params : Promise<{ slug : string 
                         <h2>Overview</h2>
                         <p>{overview}</p>
                     </section>
-                    
+
                     <section className="flex-col-gap-2">
                         <h2>Event Details</h2>
                         <EventDetailItem icon="/icons/calendar.svg" alt="calendar" label={date} />
@@ -99,14 +97,16 @@ const EventDetailsPage = async ({ params } : { params : Promise<{ slug : string 
                 {/* Right Side - Booking Form */}
                 <aside className="booking">
                     <div className="signup-card">
-                        <h2>Book your sport</h2>
-                        {bookings > 0 ? (
+                        <h2>Book your spot</h2>
+                        {bookings > 1 ? (
                             <p className="text-sm">Join {bookings} people who have already booked their spot!</p>
-                        ): (
-                            <p className="text-sm">Be the first to book your spot</p>
+                        ) : bookings === 1 ? (
+                            <p className="text-sm">Be one of the first to book your spot!</p>
+                        ) : (
+                            <p className="text-sm">Be the first to book your spot!</p>
                         )}
 
-                        <BookEvent eventId={event.id} slug={event.slug} />
+                        <BookEvent eventId={event._id.toString()} slug={event.slug} />
                     </div>
                 </aside>
             </div>

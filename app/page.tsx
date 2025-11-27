@@ -1,37 +1,26 @@
 import EventCard from "@/components/EventCard"
 import ExploreBtn from "@/components/ExploreBtn"
-import { staticEvents } from "@/lib/constants"
-import { cacheLife } from "next/cache";
+import { EventItem, staticEvents } from "@/lib/constants"
+import { getAllEvents } from "@/lib/actions/event.action"
+import { Event } from "@/types/event.types"
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL; 
+// Revalidate every hour (3600 seconds) - adjust based on how often events change
+export const revalidate = 3600;
 
 const Page = async () => {
-  'use cache';
-  cacheLife('hours');
-
-  if (!BASE_URL) {
-    throw new Error('NEXT_PUBLIC_BASE_URL environment variable is not set');
-  }
-  const response = await fetch(`${BASE_URL}/api/events`);
-   
-  if (!response.ok) {
-    throw new Error(`Failed to fetch events: ${response.status} ${response.statusText}`);
-  }
-    
-  const { events } = await response.json();
+  // Fetch events directly from database using server action
+  const events: Event[] = await getAllEvents();
 
   return (
     <section>
       <h1 className="text-center">The Hub for Every Dev <br /> Event You Can't Miss</h1>
       <p className="text-center mt-5">Hackathons, Meetups, and Conferences, All in One Place</p>
-      
+
       <ExploreBtn />
 
       <div className="mt-20 space-y-7">
-        <h3>Featured Events</h3>
-
-        <ul className="events">
-          {(events && events.length > 0 ? events : staticEvents).map((event) => (
+        <ul className="events" id="events">
+          {(events.length > 0 ? events : staticEvents).map((event: EventItem) => (
             <li key={event.title} className="list-none">
               <EventCard {...event} />
             </li>
@@ -41,4 +30,5 @@ const Page = async () => {
     </section>
   )
 }
+
 export default Page

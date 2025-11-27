@@ -1,30 +1,30 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  cacheComponents: true,
-  images: {
-      remotePatterns: [
-        {
-            protocol: 'https',
-            hostname: 'images.unsplash.com',
-        }
-      ],
-  },
-  reactCompiler: true,
-  async rewrites() {
-      return [
-          {
-              source: "/ingest/static/:path*",
-              destination: "https://eu-assets.i.posthog.com/static/:path*",
-          },
-          {
-              source: "/ingest/:path*",
-              destination: "https://eu.i.posthog.com/:path*",
-          },
-      ];
-  },
-  // This is required to support PostHog trailing slash API requests
-  skipTrailingSlashRedirect: true,
+    cacheComponents: false, // Disabled to support dynamic authentication routes
+    images: {
+        remotePatterns: [
+            {
+                protocol: 'https',
+                hostname: 'images.unsplash.com',
+            }
+        ],
+    },
+    reactCompiler: true,
+    async rewrites() {
+        return [
+            {
+                source: "/ingest/static/:path*",
+                destination: "https://eu-assets.i.posthog.com/static/:path*",
+            },
+            {
+                source: "/ingest/:path*",
+                destination: "https://eu.i.posthog.com/:path*",
+            },
+        ];
+    },
+    // This is required to support PostHog trailing slash API requests
+    skipTrailingSlashRedirect: true,
 };
 
 export default nextConfig;
