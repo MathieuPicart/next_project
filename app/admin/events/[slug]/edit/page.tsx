@@ -1,10 +1,8 @@
 import EventForm from "@/components/EventForm";
-import connectDB from "@/lib/mongodb";
-import Event from "@/database/event.model";
 import { notFound } from "next/navigation";
-
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
+import { getEventBySlug } from "@/lib/actions/event.action";
 
 export default async function EditEventPage({ params }: { params: Promise<{ slug: string }> }) {
     const session = await auth();
@@ -15,15 +13,13 @@ export default async function EditEventPage({ params }: { params: Promise<{ slug
 
     const { slug } = await params;
 
-    await connectDB();
-
-    const event = await Event.findOne({ slug }).lean();
+    const event = await getEventBySlug(slug);
 
     if (!event) {
         notFound();
     }
 
-    // Convert MongoDB document to plain object and format for the form
+    // Event data is already in the correct format from the action
     const eventData = {
         title: event.title,
         description: event.description,
@@ -36,8 +32,8 @@ export default async function EditEventPage({ params }: { params: Promise<{ slug
         mode: event.mode,
         audience: event.audience,
         organizer: event.organizer,
-        tags: event.tags || [],
-        agenda: event.agenda || [],
+        tags: event.tags,
+        agenda: event.agenda,
     };
 
     return (

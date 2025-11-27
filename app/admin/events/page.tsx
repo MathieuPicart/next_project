@@ -1,20 +1,15 @@
 import Link from "next/link";
-import connectDB from "@/lib/mongodb";
-import Event from "@/database/event.model";
 import EventsTable from "@/components/EventsTable";
+import { getAllEvents } from "@/lib/actions/event.action";
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminEventsPage() {
-    await connectDB();
+    const events = await getAllEvents();
 
-    const events = await Event.find()
-        .sort({ createdAt: -1 })
-        .lean();
-
-    // Convert MongoDB documents to plain objects
+    // Extract only the fields needed for the table
     const eventsData = events.map(event => ({
-        _id: event._id.toString(),
+        _id: event._id,
         title: event.title,
         slug: event.slug,
         date: event.date,

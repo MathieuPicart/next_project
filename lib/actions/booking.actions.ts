@@ -48,7 +48,7 @@ export const checkUserBooking = async ({
         if (existingBooking) {
             return {
                 hasBooked: true,
-                bookingId: existingBooking._id.toString()
+                bookingId: ((existingBooking as any)._id).toString()
             };
         }
 

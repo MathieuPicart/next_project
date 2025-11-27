@@ -39,13 +39,13 @@ export async function getPopularEvents(limit: number = 5) {
 
         const eventsWithBookings = await Promise.all(
             events.map(async (event) => {
-                const bookingCount = await Booking.countDocuments({ eventId: event._id });
+                const bookingCount = await Booking.countDocuments({ eventId: (event as any)._id });
                 return {
-                    id: event._id.toString(),
-                    title: event.title,
-                    slug: event.slug,
-                    date: event.date,
-                    location: event.location,
+                    id: ((event as any)._id).toString(),
+                    title: (event as any).title,
+                    slug: (event as any).slug,
+                    date: (event as any).date,
+                    location: (event as any).location,
                     bookingCount,
                 };
             })
@@ -75,12 +75,12 @@ export async function getUpcomingEvents(limit: number = 5) {
             .lean();
 
         return upcomingEvents.map(event => ({
-            id: event._id.toString(),
-            title: event.title,
-            slug: event.slug,
-            date: event.date,
-            time: event.time,
-            location: event.location,
+            id: ((event as any)._id).toString(),
+            title: (event as any).title,
+            slug: (event as any).slug,
+            date: (event as any).date,
+            time: (event as any).time,
+            location: (event as any).location,
         }));
     } catch (error) {
         console.error('Error fetching upcoming events:', error);
@@ -100,9 +100,9 @@ export async function getRecentBookings(limit: number = 10) {
             .lean();
 
         return bookings.map(booking => ({
-            id: booking._id.toString(),
-            email: booking.email,
-            createdAt: new Date(booking.createdAt).toISOString(),
+            id: ((booking as any)._id).toString(),
+            email: (booking as any).email,
+            createdAt: new Date((booking as any).createdAt).toISOString(),
             event: booking.eventId ? {
                 title: (booking.eventId as any).title,
                 slug: (booking.eventId as any).slug,

@@ -1,11 +1,11 @@
 'use client';
 
 import { signIn } from 'next-auth/react';
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
-export default function SignInPage() {
+function SignInForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const callbackUrl = searchParams.get('callbackUrl') || '/';
@@ -100,5 +100,13 @@ export default function SignInPage() {
                 </div>
             </div>
         </section>
+    );
+}
+
+export default function SignInPage() {
+    return (
+        <Suspense fallback={<div className="flex items-center justify-center min-h-[80vh]">Loading...</div>}>
+            <SignInForm />
+        </Suspense>
     );
 }

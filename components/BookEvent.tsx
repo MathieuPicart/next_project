@@ -46,7 +46,7 @@ const BookEvent = ({ eventId, slug }: { eventId: string, slug: string; }) => {
         setError(null);
 
         try {
-            const { success } = await cancelUserBooking(bookingId);
+            const { success } = await cancelUserBooking(bookingId, session?.user?.id || '');
             if (success) {
                 setHasBooked(false);
                 setBookingId(null);

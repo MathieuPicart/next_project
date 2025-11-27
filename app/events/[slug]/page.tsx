@@ -56,7 +56,7 @@ const EventDetailsPage = async ({ params }: { params: Promise<{ slug: string }> 
 
     const bookings = await getEventBookingCount(event._id.toString());
 
-    const similarEvents: IEvent[] = await getSimilarEventsBySlug(slug);
+    const similarEvents = await getSimilarEventsBySlug(slug);
 
     return (
         <section id="event">
