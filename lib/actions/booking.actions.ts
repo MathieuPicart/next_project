@@ -97,7 +97,7 @@ export const getUserBookings = async (userId: string) => {
             .sort({ createdAt: -1 })
             .lean();
 
-        return bookings.map(booking => ({
+        return bookings.map((booking: any) => ({
             _id: booking._id.toString(),
             email: booking.email,
             createdAt: new Date(booking.createdAt).toISOString(),

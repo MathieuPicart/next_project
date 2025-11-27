@@ -19,16 +19,29 @@ export async function PATCH(req: NextRequest) {
 
         const { name, email } = await req.json();
 
+        // Sanitize input
+        const trimmedName = name?.trim();
+        const trimmedEmail = email?.trim().toLowerCase();
+
         // Validate input
-        if (!name || !email) {
+        if (!trimmedName || !trimmedEmail) {
             return NextResponse.json(
                 { message: 'Name and email are required' },
                 { status: 400 }
             );
         }
 
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(trimmedEmail)) {
+            return NextResponse.json(
+                { message: 'Invalid email format' },
+                { status: 400 }
+            );
+        }
+
         // Check if email is already taken by another user
-        const existingUser = await User.findOne({ email, _id: { $ne: session.user.id } });
+        const existingUser = await User.findOne({ email: trimmedEmail, _id: { $ne: session.user.id } });
         if (existingUser) {
             return NextResponse.json(
                 { message: 'Email is already in use' },
@@ -39,7 +52,7 @@ export async function PATCH(req: NextRequest) {
         // Update user
         const user = await User.findByIdAndUpdate(
             session.user.id,
-            { name, email },
+            { name: trimmedName, email: trimmedEmail },
             { new: true }
         );
 

@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import DeleteConfirmModal from "@/components/DeleteConfirmModal";
 import { cancelUserBooking } from "@/lib/actions/booking.actions";
+import { useSession } from "next-auth/react";
 
 interface Booking {
     _id: string;
@@ -23,6 +24,7 @@ interface Booking {
 
 export default function UserBookingsTable({ bookings }: { bookings: Booking[] }) {
     const router = useRouter();
+    const { data: session } = useSession();
     const [filter, setFilter] = useState<'all' | 'upcoming' | 'past'>('all');
     const [cancelModal, setCancelModal] = useState<{ isOpen: boolean; booking: Booking | null }>({
         isOpen: false,
@@ -51,13 +53,13 @@ export default function UserBookingsTable({ bookings }: { bookings: Booking[] })
     };
 
     const handleCancelConfirm = async () => {
-        if (!cancelModal.booking) return;
+        if (!cancelModal.booking || !session?.user?.id) return;
 
         setLoading(true);
         setError('');
 
         try {
-            const { success } = await cancelUserBooking(cancelModal.booking._id);
+            const { success } = await cancelUserBooking(cancelModal.booking._id, session?.user.id);
 
             if (!success) {
                 setLoading(false);
