@@ -88,30 +88,65 @@ export const getEventBookingCount = async (eventId: string) => {
     }
 }
 
-export const getUserBookingsWithEvents = async (userId: string) => {
+export const getUserBookings = async (userId: string) => {
     try {
         await connectDB();
 
-        // Find all bookings for this user
         const bookings = await Booking.find({ userId })
+            .populate('eventId', 'title slug date time location image')
             .sort({ createdAt: -1 })
-            .populate('eventId', 'title slug date time location')
             .lean();
 
-        // Transform the data to match the expected format
         return bookings.map((booking: any) => ({
             _id: booking._id.toString(),
+            email: booking.email,
+            createdAt: new Date(booking.createdAt).toISOString(),
             event: booking.eventId ? {
-                title: booking.eventId.title,
-                slug: booking.eventId.slug,
-                date: booking.eventId.date,
-                time: booking.eventId.time,
-                location: booking.eventId.location,
-            } : undefined,
-            createdAt: booking.createdAt.toISOString(),
+                title: (booking.eventId as any).title,
+                slug: (booking.eventId as any).slug,
+                date: (booking.eventId as any).date,
+                time: (booking.eventId as any).time,
+                location: (booking.eventId as any).location,
+                image: (booking.eventId as any).image,
+            } : null,
         }));
     } catch (e) {
         console.error('get user bookings failed', e);
         return [];
+    }
+}
+
+export const getUserBookingStats = async (userId: string) => {
+    try {
+        await connectDB();
+
+        const today = new Date().toISOString().split('T')[0];
+
+        const [totalBookings, upcomingBookings] = await Promise.all([
+            Booking.countDocuments({ userId }),
+            Booking.find({ userId })
+                .populate('eventId', 'date')
+                .lean()
+                .then(bookings =>
+                    bookings.filter(b =>
+                        b.eventId && (b.eventId as any).date >= today
+                    ).length
+                ),
+        ]);
+
+        const pastBookings = totalBookings - upcomingBookings;
+
+        return {
+            total: totalBookings,
+            upcoming: upcomingBookings,
+            past: pastBookings,
+        };
+    } catch (e) {
+        console.error('get user booking stats failed', e);
+        return {
+            total: 0,
+            upcoming: 0,
+            past: 0,
+        };
     }
 }
