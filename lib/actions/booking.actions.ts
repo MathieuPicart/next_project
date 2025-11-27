@@ -17,7 +17,7 @@ export const createBooking = async ({
     try {
         await connectDB();
 
-        const bookingData: any = { eventId, slug, email };
+        const bookingData: { eventId: string; slug: string; email: string; userId?: string } = { eventId, slug, email };
 
         // Add userId if provided (authenticated user)
         if (userId) {
@@ -48,7 +48,7 @@ export const checkUserBooking = async ({
         if (existingBooking) {
             return {
                 hasBooked: true,
-                bookingId: existingBooking._id.toString()
+                bookingId: ((existingBooking as any)._id).toString()
             };
         }
 
@@ -59,9 +59,15 @@ export const checkUserBooking = async ({
     }
 }
 
-export const cancelUserBooking = async (bookingId: string) => {
+export const cancelUserBooking = async (bookingId: string, userId: string) => {
     try {
         await connectDB();
+
+        const booking = await Booking.findById(bookingId);
+
+        if (!booking || booking.userId?.toString() !== userId) {
+            return { success: false, error: 'Booking not found or unauthorized' };
+        }
 
         await Booking.findByIdAndDelete(bookingId);
 

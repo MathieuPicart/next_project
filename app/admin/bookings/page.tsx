@@ -1,8 +1,28 @@
 import connectDB from "@/lib/mongodb";
 import Booking from "@/database/booking.model";
 import BookingsTable from "@/components/BookingsTable";
+import { Types } from "mongoose";
 
 export const dynamic = 'force-dynamic';
+
+// Type definition for lean booking with populated fields
+type PopulatedBooking = {
+    _id: Types.ObjectId;
+    email: string;
+    createdAt: Date;
+    updatedAt: Date;
+    eventId: {
+        title: string;
+        slug: string;
+        date: string;
+        time: string;
+        location: string;
+    };
+    userId?: {
+        name: string;
+        email: string;
+    };
+};
 
 export default async function AdminBookingsPage() {
     await connectDB();
@@ -12,7 +32,7 @@ export default async function AdminBookingsPage() {
         .populate('eventId', 'title slug date time location')
         .populate('userId', 'name email')
         .sort({ createdAt: -1 })
-        .lean();
+        .lean() as unknown as PopulatedBooking[];
 
     // Convert to plain objects
     const bookingsData = bookings.map(booking => ({
@@ -20,15 +40,15 @@ export default async function AdminBookingsPage() {
         email: booking.email,
         createdAt: new Date(booking.createdAt).toISOString(),
         event: booking.eventId ? {
-            title: (booking.eventId as any).title,
-            slug: (booking.eventId as any).slug,
-            date: (booking.eventId as any).date,
-            time: (booking.eventId as any).time,
-            location: (booking.eventId as any).location,
+            title: booking.eventId.title,
+            slug: booking.eventId.slug,
+            date: booking.eventId.date,
+            time: booking.eventId.time,
+            location: booking.eventId.location,
         } : null,
         user: booking.userId ? {
-            name: (booking.userId as any).name,
-            email: (booking.userId as any).email,
+            name: booking.userId.name,
+            email: booking.userId.email,
         } : null,
     }));
 

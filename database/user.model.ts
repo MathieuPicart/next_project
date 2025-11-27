@@ -1,4 +1,4 @@
-import { Schema, model, models, Document } from 'mongoose';
+import { Schema, model, models, Document, Model } from 'mongoose';
 import bcrypt from 'bcryptjs';
 
 // TypeScript interface for User document
@@ -94,7 +94,7 @@ UserSchema.methods.comparePassword = async function (
 // Indexes are automatically created from schema unique: true constraint
 // Additional indexes can be created manually in production via MongoDB
 
-let User: ReturnType<typeof model<IUser>>;
+let User: Model<IUser>;
 
 try {
     User = model<IUser>('User');

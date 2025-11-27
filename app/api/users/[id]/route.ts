@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import User from "@/database/user.model";
+import { auth } from "@/auth";
 
 // PATCH - Update user role
 export async function PATCH(
@@ -9,6 +10,16 @@ export async function PATCH(
 ) {
     try {
         const { id } = await params;
+
+        // Ensure only authenticated admins can update roles
+        const session = await auth();
+        if (!session || session.user.role !== 'admin') {
+            return NextResponse.json(
+                { message: 'Forbidden' },
+                { status: 403 }
+            );
+        }
+
         await connectDB();
 
         const { role } = await req.json();
@@ -28,6 +39,26 @@ export async function PATCH(
                 { message: 'User not found' },
                 { status: 404 }
             );
+        }
+
+        // Prevent admin from demoting themselves
+        if (id === session.user.id && role === 'user' && user.role === 'admin') {
+            return NextResponse.json(
+                { message: 'You cannot demote yourself. Ask another admin to change your role.' },
+                { status: 403 }
+            );
+        }
+
+        // If demoting an admin to user, check if they're the last admin
+        if (role === 'user' && user.role === 'admin') {
+            const adminCount = await User.countDocuments({ role: 'admin' });
+
+            if (adminCount <= 1) {
+                return NextResponse.json(
+                    { message: 'Cannot demote the last admin. Promote another user to admin first.' },
+                    { status: 400 }
+                );
+            }
         }
 
         // Update user role

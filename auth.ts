@@ -41,11 +41,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
                     // Return user object (password will be excluded from session)
                     return {
-                        id: user._id.toString(),
-                        name: user.name,
-                        email: user.email,
-                        role: user.role,
-                        image: user.image,
+                        id: (user._id as any).toString(),
+                        name: (user as any).name,
+                        email: (user as any).email,
+                        role: (user as any).role,
+                        image: (user as any).image,
                     };
                 } catch (error) {
                     console.error("Auth error:", error);
